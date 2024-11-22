@@ -1,0 +1,48 @@
+name: Setup RDP Server
+
+on:
+  push:
+    branches:
+      - main  # Ya jis branch pe aap chahein
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  setup_rdp:
+    runs-on: windows-latest  # GitHub Action Windows environment pe chalega
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Install RDP dependencies
+      run: |
+        # Windows pe RDP ko enable karne ke liye PowerShell commands use karenge
+        Set-ExecutionPolicy RemoteSigned -Scope Process -Force
+        Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-RemoteDesktop-Client -All
+        Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-RemoteDesktop-Server -All
+    
+    - name: Start RDP service
+      run: |
+        # RDP service ko start karenge
+        Start-Service -Name "TermService"
+        Set-Service -Name "TermService" -StartupType Automatic
+    
+    - name: Allow RDP on firewall
+      run: |
+        # RDP port (3389) ko firewall pe allow karenge
+        New-NetFirewallRule -DisplayName "Allow RDP" -Direction Inbound -Protocol TCP -LocalPort 3389 -Action Allow
+    
+    - name: Restart RDP Service
+      run: |
+        # RDP service ko restart karenge changes ke baad
+        Restart-Service -Name "TermService"
+    
+    - name: Display RDP connection details
+      run: |
+        # RDP connection details dikhayenge (Yeh custom code hai jo aapke requirement ke hisaab se ho sakta hai)
+        $rdp_ip = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.PrefixLength -eq 24 }).IPAddress
+        Write-Host "Your RDP connection is ready!"
+        Write-Host "IP Address: $rdp_ip"
+        Write-Host "Port: 3389"
